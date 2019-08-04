@@ -24,6 +24,7 @@ struct EditView: View {
     // ℹ️ Temporary in-memory storage for updating the title and description values of a Blog Idea
     @State var updatedIdeaTitle: String = ""
     @State var updatedIdeaDescription: String = ""
+    @State private var errorHandler: ErrorHandler? = nil
     
     var body: some View {
         VStack {
@@ -46,21 +47,25 @@ struct EditView: View {
             VStack {
                 Button(action: ({
                     // ❇️ Set the blog idea's new values from the TextField's Binding and save
-                    self.blogIdea.ideaTitle = self.updatedIdeaTitle
-                    self.blogIdea.ideaDescription = self.updatedIdeaDescription
-                    
-                    do {
-                        try self.managedObjectContext.save()
-                    } catch {
-                        print(error)
+                    // ℹ️ Use of a static function to share logic
+                    let result = BlogIdea.update(self.blogIdea,
+                                    updatedIdeaTitle: self.updatedIdeaTitle,
+                                    updatedIdeaDescription: self.updatedIdeaDescription,
+                                    context: self.managedObjectContext)
+                    switch result{
+                    case .success:
+                        self.presentationMode.value.dismiss()
+                    case .failure(let err):
+                        // ℹ️ handle errors, message the user
+                        self.errorHandler = .displayError(err)
                     }
                     
-                    self.presentationMode.value.dismiss()
+                    
                 })) {
                     Text("Save")
                 }
             .padding()
             }
-        }
+        }.actionSheet(item: $errorHandler, content: ErrorHandler.actionSheet)
     }
 }

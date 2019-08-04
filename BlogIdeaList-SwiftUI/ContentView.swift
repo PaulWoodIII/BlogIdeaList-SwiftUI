@@ -22,8 +22,9 @@ struct ContentView: View {
     // ℹ️ Temporary in-memory storage for adding new blog ideas
     @State private var newIdeaTitle = ""
     @State private var newIdeaDescription = ""
+    @State private var errorHandler: ErrorHandler? = nil
     
-    // ℹ️ Two sections: Add Blog Idea at the top, followed by a listing of the ideas in the persistent store
+    // ℹ️ Two sections: Add Blog Idea at the top, followed by a listing of the ideas in the persistent store    
     var body: some View {
         NavigationView {
             List {
@@ -39,19 +40,18 @@ struct ContentView: View {
                         VStack {
                             Button(action: ({
                                 // ❇️ Initializes new BlogIdea and saves using the @Environment's managedObjectContext
-                                let idea = BlogIdea(context: self.managedObjectContext)
-                                idea.ideaTitle = self.newIdeaTitle
-                                idea.ideaDescription = self.newIdeaDescription
-                                
-                                do {
-                                    try self.managedObjectContext.save()
-                                } catch {
-                                    print(error)
+                                // ℹ️ Use of a static function to share logic
+                                let result = BlogIdea.create(self.newIdeaTitle,
+                                                          ideaDescription: self.newIdeaDescription,
+                                                          context: self.managedObjectContext)
+                                switch result {
+                                case .success:
+                                    self.newIdeaTitle = ""
+                                    self.newIdeaDescription = ""
+                                case .failure(let err):
+                                    // ℹ️ handle errors, message the user
+                                    self.errorHandler = .displayError(err)
                                 }
-                                
-                                // ℹ️ Reset the temporary in-memory storage variables for the next new blog idea!
-                                self.newIdeaTitle = ""
-                                self.newIdeaDescription = ""
                             })) {
                                 HStack {
                                     Image(systemName: "plus.circle.fill")
@@ -68,6 +68,8 @@ struct ContentView: View {
 
 
 
+                
+                
                 Section(header: Text("Blog Ideas")) {
                     ForEach(self.blogIdeas) { blogIdea in
                         NavigationLink(destination: EditView(blogIdea: blogIdea)) {
@@ -79,17 +81,20 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .onDelete { (indexSet) in // Delete gets triggered by swiping left on a row
-                        // ❇️ Gets the BlogIdea instance out of the blogIdeas array
-                        // ❇️ and deletes it using the @Environment's managedObjectContext
-                        let blogIdeaToDelete = self.blogIdeas[indexSet.first!]
-                        self.managedObjectContext.delete(blogIdeaToDelete)
-                        
-                        do {
-                            try self.managedObjectContext.save()
-                        } catch {
-                            print(error)
-                        }
+                        .onDelete { (indexSet) in // Delete gets triggered by swiping left on a row
+                            // ❇️ Gets the BlogIdea instance out of the blogIdeas array
+                            // ❇️ and deletes it using the @Environment's managedObjectContext
+                            let blogIdeaToDelete = self.blogIdeas[indexSet.first!]
+                            // ℹ️ Use of a static function to share logic
+                            let result = BlogIdea.delete(blogIdeaToDelete, context: self.managedObjectContext)
+                            switch result {
+                            case .success:
+                                break
+                            case .failure(let err):
+                                // ℹ️ handle errors, message the user
+                                self.errorHandler = .displayError(err)
+                            }
+                            
                     }
                 }
                 .font(.headline)
@@ -97,7 +102,7 @@ struct ContentView: View {
             .listStyle(GroupedListStyle())
             .navigationBarTitle(Text("Blog Idea List"))
             .navigationBarItems(trailing: EditButton())
-        }
+        }.actionSheet(item: $errorHandler, content: ErrorHandler.actionSheet)
     }
 }
 
