@@ -29,3 +29,45 @@ extension BlogIdea {
         return request
     }
 }
+
+// ❇️ Create Read Update Destroy
+extension BlogIdea {
+    
+    public static func create(_ ideaTitle: String,
+                              ideaDescription: String,
+                              context: NSManagedObjectContext) -> Result<BlogIdea, Error> {
+        let idea = BlogIdea(context: context)
+        idea.ideaTitle = ideaTitle
+        idea.ideaDescription = ideaDescription
+        return Result(catching: {try context.save()}).flatMap { _ in
+            Result.success(idea)
+        }
+    }
+    
+    public static func update(_ ideaToUpdate: BlogIdea,
+                              updatedIdeaTitle: String?,
+                              updatedIdeaDescription: String?,
+                              context: NSManagedObjectContext) -> Result<BlogIdea, Error> {
+        ideaToUpdate.ideaTitle = updatedIdeaDescription
+        ideaToUpdate.ideaDescription = updatedIdeaDescription
+        return Result(catching: {try context.save()}).flatMap { _ in
+            Result.success(ideaToUpdate)
+        }
+    }
+    
+    // ❇️ This is more for show than to be used
+    public static func read(_ id: NSManagedObjectID,
+                              context: NSManagedObjectContext) -> Result<BlogIdea, Error> {
+        if let object = context.object(with: id) as? BlogIdea{
+            return Result.success(object)
+        } else {
+            return Result.failure(NSError())// better to use a custom type but it isn't what I'm teaching
+        }
+    }
+    
+    public static func delete(_ blogIdeaToDelete: BlogIdea,
+                              context: NSManagedObjectContext) -> Result<Void, Error> {
+        context.delete(blogIdeaToDelete)
+        return Result(catching: {try context.save()})
+    }
+}
