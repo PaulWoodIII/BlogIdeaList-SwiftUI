@@ -54,12 +54,11 @@ struct EditView: View {
                                     context: self.managedObjectContext)
                     switch result{
                     case .success:
-                        self.presentationMode.value.dismiss()
+                        self.presentationMode.wrappedValue.dismiss()
                     case .failure(let err):
                         // ℹ️ handle errors, message the user
                         self.errorHandler = .displayError(err)
                     }
-                    self.presentationMode.wrappedValue.dismiss()
                 })) {
                     Text("Save")
                 }

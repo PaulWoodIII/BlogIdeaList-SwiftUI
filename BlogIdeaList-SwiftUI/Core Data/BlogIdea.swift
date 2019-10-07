@@ -48,7 +48,8 @@ extension BlogIdea {
                               updatedIdeaTitle: String?,
                               updatedIdeaDescription: String?,
                               context: NSManagedObjectContext) -> Result<BlogIdea, Error> {
-        ideaToUpdate.ideaTitle = updatedIdeaDescription
+        ideaToUpdate.objectWillChange.send()
+        ideaToUpdate.ideaTitle = updatedIdeaTitle
         ideaToUpdate.ideaDescription = updatedIdeaDescription
         return Result(catching: {try context.save()}).flatMap { _ in
             Result.success(ideaToUpdate)
